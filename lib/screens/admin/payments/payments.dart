@@ -68,7 +68,7 @@ class PaymentsListState extends State<PaymentsList> {
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Center(
                   child: Text(
-                    "Pagos",
+                    "Pagos Registrados",
                     style: Theme.of(context).textTheme.headline1,
                   ),
                 ),
@@ -129,6 +129,15 @@ class PaymentsListState extends State<PaymentsList> {
                           vertical: 8.0, horizontal: 16.0),
                       title: Text(title),
                       subtitle: Text(subtitle),
+                      onTap:  () {
+                        Navigator.pushNamed(context, "/paymentform",
+                            arguments: widget.payments.payments[index])
+                            .then(
+                              (value) {
+                            setState(() {});
+                          },
+                        );
+                      },
                     ),
                   ),
                 );
