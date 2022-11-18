@@ -135,9 +135,7 @@ class OrdersListWidgetState extends State<OrdersListWidget> {
                         color: Colors.green,
                         size: 35,
                       ),
-                      onTap: widget.orders.orders[index].delivery != null
-                          ? null
-                          : () {
+                      onTap:  () {
                         Navigator.pushNamed(context, "/deliveryform",
                             arguments: widget.orders.orders[index])
                             .then(

@@ -7,6 +7,7 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:future_progress_dialog/future_progress_dialog.dart';
 import 'package:repair_station/models/order.dart';
 import 'package:repair_station/models/crane.dart';
+import 'package:repair_station/models/payment.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import '../../../models/my_repair_station.dart';
 import 'package:http/http.dart' as http;
@@ -166,19 +167,20 @@ class DeliveryFormState extends State<DeliveryForm> {
                         _formKey.currentState?.value["crane"];
 
                         final Map orderData = {
-                          'orderID' : widget.order.orderId,
+                          'orderId' : widget.order.orderId,
                           'quantityArticles' : widget.order.totalItems,
                           'totalPrice' : widget.order.totalCost,
                           'totalWeight' : widget.order.totalWeight,
                           'pickupLatitud' : MyRepairStation.latitud,
                           'pickupLongitud' : MyRepairStation.longitud,
                           'pickupName': MyRepairStation.name,
-                          'clientLatitud' : widget.order.clientLatitud,
-                          'clientLongitud' : widget.order.clientLongitud,
+                          'deliveryLatitud' : widget.order.clientLatitud,
+                          'deliveryLongitud' : widget.order.clientLongitud,
                           'clientName': widget.order.clientName
                         };
 
                         String orderBody = json.encode(orderData);
+                        debugPrint(orderBody);
 
                         int? operationResult = await showDialog<int>(
                           context: context,
@@ -190,7 +192,7 @@ class DeliveryFormState extends State<DeliveryForm> {
                                   // ask to crane
 
                                   http.Response response = await http.post(
-                                    Uri.parse(chosenCrane.url),
+                                    Uri.parse(chosenCrane.url + '/delivery'),
                                     headers: {"Content-Type": "application/json"},
                                     body: orderBody,);
 
@@ -207,6 +209,8 @@ class DeliveryFormState extends State<DeliveryForm> {
                                     } else {
                                       widget.order.delivery = chosenCrane.name;
                                       widget.order.status = true;
+                                      widget.order.estado = "true";
+
                                       bool updateResult =
                                       await Order.updateOrder(
                                           order: widget.order);
@@ -269,6 +273,242 @@ class DeliveryFormState extends State<DeliveryForm> {
                     ),
                     label: Text(
                       'Submit',
+                      style: Theme.of(context).textTheme.subtitle2,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (_formKey.currentState?.saveAndValidate() ?? false) {
+                        debugPrint(_formKey.currentState?.value.toString());
+
+                        String message = "";
+                        AlertType alertType = AlertType.info;
+
+                        final Crane chosenCrane =
+                        _formKey.currentState?.value["crane"];
+
+                        final Map orderData = {
+                          'ordenID' : widget.order.orderId,
+                        };
+
+                        String orderBody = json.encode(orderData);
+
+                        int? operationResult = await showDialog<int>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => FutureProgressDialog(
+                            Future<int?>(
+                                  () async {
+                                try {
+                                  // ask to crane
+
+                                  http.Response response = await http.post(
+                                    Uri.parse(chosenCrane.url + '/orden'),
+                                    headers: {"Content-Type": "application/json"},
+                                    body: orderBody,);
+
+                                  Map<String, dynamic> recvJson = JsonDecoder().convert(response.body);
+                                  debugPrint(recvJson.toString());
+
+                                  debugPrint(recvJson.toString());
+                                  debugPrint(response.statusCode.toString());
+
+                                  // Process result
+                                  if (response.statusCode == 404) {
+                                    message =
+                                    "Grúa no se encuentra disponible. Intente con otra";
+                                    debugPrint(recvJson.toString());
+                                    debugPrint(response.statusCode.toString());
+                                    alertType = AlertType.warning;
+                                  } else {
+                                    if (response.statusCode != 200) {
+                                      message =
+                                      "Ocurrió un error con la comunicación con la grúa, intente de nuevo";
+                                      debugPrint(recvJson.toString());
+                                      debugPrint(response.statusCode.toString());
+                                      alertType = AlertType.error;
+                                    } else {
+                                      widget.order.deliveryCost = recvJson['costoEnvio'].toString();
+                                      widget.order.paymentStatus = recvJson['estado'];
+                                      widget.order.deliveryDate = recvJson['fechaEntrega'];
+                                      widget.order.deliveryETA = recvJson['ETA'].toString();
+                                      widget.order.deliveryServer = recvJson['servidor'];
+                                      widget.order.costoTotal = recvJson['costoTotal'].toString();
+
+                                      bool updateResult =
+                                      await Order.updateOrder2(
+                                          order: widget.order);
+                                      message = updateResult
+                                          ? "La orden ha sido actualizada con éxito"
+                                          : "Ocurrió un error con la comunicación con la grúa, intente de nuevo";
+                                      alertType = updateResult
+                                          ? AlertType.info
+                                          : AlertType.error;
+                                    }
+                                  }
+
+                                  return 1;
+                                } catch (e) {
+                                  print(e);
+                                  message =
+                                  "Ocurrió un error al crear la petición. Intente de nuevo";
+                                  alertType = AlertType.error;
+                                  return -1;
+                                }
+                              },
+                            ),
+                            message: Text(
+                              'Consultando Mensajería...',
+                              style: Theme.of(context).textTheme.subtitle1,
+                            ),
+                          ),
+                        );
+
+                        Alert(
+                          context: context,
+                          type: alertType,
+                          title: "Warning",
+                          desc: message,
+                          buttons: [
+                            DialogButton(
+                              onPressed: () {
+                                if (operationResult != null &&
+                                    operationResult > 0) {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop();
+                                } else {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              child: Text(
+                                "Cerrar",
+                                style: Theme.of(context).textTheme.subtitle2,
+                              ),
+                            ),
+                          ],
+                        ).show();
+                      } else {
+                        debugPrint(_formKey.currentState?.value.toString());
+                        debugPrint('validation failed');
+                      }
+                    },
+                    icon: Icon(
+                      Icons.send,
+                      color: Colors.white.withOpacity(0.90),
+                    ),
+                    label: Text(
+                      'Update Status',
+                      style: Theme.of(context).textTheme.subtitle2,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (_formKey.currentState?.saveAndValidate() ?? false) {
+                        debugPrint(_formKey.currentState?.value.toString());
+
+                        String message = "";
+                        AlertType alertType = AlertType.info;
+
+                        final Crane chosenCrane =
+                        _formKey.currentState?.value["crane"];
+
+                        final Map orderData = {
+                          'ordenID' : widget.order.orderId,
+                        };
+
+                        String orderBody = json.encode(orderData);
+
+                        int? operationResult = await showDialog<int>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => FutureProgressDialog(
+                            Future<int?>(
+                                  () async {
+                                try {
+                                  // ask to crane
+
+                                  http.Response response = await http.post(
+                                    Uri.parse(chosenCrane.url + '/pago'),
+                                    headers: {"Content-Type": "application/json"},
+                                    body: orderBody,);
+
+                                  Map<String, dynamic> recvJson = JsonDecoder().convert(response.body);
+                                  debugPrint(recvJson.toString());
+
+                                  debugPrint(recvJson.toString());
+                                  debugPrint(response.statusCode.toString());
+
+                                  // Process result
+                                  if (response.statusCode == 404) {
+                                    message =
+                                    "Grúa no se encuentra disponible. Intente con otra";
+                                    debugPrint(recvJson.toString());
+                                    debugPrint(response.statusCode.toString());
+                                    alertType = AlertType.warning;
+                                  } else {
+                                    if (response.statusCode != 200) {
+                                      message =
+                                      "Ocurrió un error con la comunicación con la grúa, intente de nuevo";
+                                      debugPrint(recvJson.toString());
+                                      debugPrint(response.statusCode.toString());
+                                      alertType = AlertType.error;
+                                    } else {
+                                      message = "La orden ha sido actualizada con éxito";
+                                      alertType = AlertType.info;
+                                    }
+                                  }
+
+                                  return 1;
+                                } catch (e) {
+                                  print(e);
+                                  message =
+                                  "Ocurrió un error al crear la petición. Intente de nuevo";
+                                  alertType = AlertType.error;
+                                  return -1;
+                                }
+                              },
+                            ),
+                            message: Text(
+                              'Consultando Mensajería...',
+                              style: Theme.of(context).textTheme.subtitle1,
+                            ),
+                          ),
+                        );
+
+                        Alert(
+                          context: context,
+                          type: alertType,
+                          title: "Warning",
+                          desc: message,
+                          buttons: [
+                            DialogButton(
+                              onPressed: () {
+                                if (operationResult != null &&
+                                    operationResult > 0) {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pop();
+                                } else {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              child: Text(
+                                "Cerrar",
+                                style: Theme.of(context).textTheme.subtitle2,
+                              ),
+                            ),
+                          ],
+                        ).show();
+                      } else {
+                        debugPrint(_formKey.currentState?.value.toString());
+                        debugPrint('validation failed');
+                      }
+                    },
+                    icon: Icon(
+                      Icons.send,
+                      color: Colors.white.withOpacity(0.90),
+                    ),
+                    label: Text(
+                      'Enviar Pago Orden',
                       style: Theme.of(context).textTheme.subtitle2,
                     ),
                   ),
