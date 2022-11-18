@@ -4,6 +4,7 @@ import 'package:repair_station/screens/admin/car_lines/car_lines.dart';
 import 'package:repair_station/screens/admin/cranes/cranes.dart';
 import 'package:repair_station/screens/admin/sales/sales.dart';
 
+import 'Payments/payments.dart';
 import 'inventory/inventory.dart';
 import 'orders/orders.dart';
 
@@ -81,7 +82,7 @@ class AdminMenuState extends State<AdminMenu> {
           footer: Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              'Tienda de Reparaciones',
+              'Tienda de Repuestos',
               style: Theme.of(context).textTheme.subtitle1,
             ),
           ),
@@ -121,14 +122,14 @@ class AdminMenuState extends State<AdminMenu> {
               },
               icon: const Icon(Icons.file_copy_rounded),
             ),
-/*             SideMenuItem(
-               priority: 3,
-               title: 'Promociones',
+             SideMenuItem(
+               priority: 4,
+               title: 'Pagos',
                onTap: () {
-                 page.jumpToPage(3);
+                 page.jumpToPage(4);
                },
-               icon: const Icon(Icons.price_change),
-             ),*/
+               icon: const Icon(Icons.point_of_sale),
+             ),
           ],
         ),
         Expanded(
@@ -142,6 +143,7 @@ class AdminMenuState extends State<AdminMenu> {
                 InventoryScreen(),
                 OrdersScreen(),
                 // SaleScreen(),
+                PaymentsScreen(),
               ],
             ),
           ),
