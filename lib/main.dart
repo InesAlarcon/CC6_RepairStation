@@ -110,7 +110,7 @@ class MyApp extends StatelessWidget {
               settings: settings,
               reverseDuration: const Duration(seconds: 1),
             );
-/*         case "/newsaleform":
+         case "/newsaleform":
            final arguments = settings.arguments! as SalesCatalog;
            return PageTransition(
              child: NewSaleFormScreen(
@@ -129,7 +129,7 @@ class MyApp extends StatelessWidget {
              type: PageTransitionType.fade,
              settings: settings,
              reverseDuration: const Duration(seconds: 1),
-           );*/
+           );
           case "/craneform":
             final arguments = settings.arguments! as List<dynamic>;
             return PageTransition(
